@@ -1,7 +1,8 @@
 package com.howtobeasdet.TodoListAPI.Repository;
 
 import com.howtobeasdet.TodoListAPI.Model.Task;
+import com.howtobeasdet.TodoListAPI.Model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TodoRepository extends JpaRepository<Task, Long> {
+public interface UserRepository extends JpaRepository<User, Long> {
 }

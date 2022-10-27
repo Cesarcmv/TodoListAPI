@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-public class TodoController {
+public class UserController {
     @Autowired
     private TaskRepository taskRepository;
 
@@ -43,5 +43,4 @@ public class TodoController {
         taskRepository.delete(deletedTask);
         return "Deleted Task";
     }
-
 }
