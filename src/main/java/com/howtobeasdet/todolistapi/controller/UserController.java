@@ -8,7 +8,6 @@ import com.howtobeasdet.todolistapi.repository.RoleRepository;
 import com.howtobeasdet.todolistapi.repository.UserRepository;
 import com.howtobeasdet.todolistapi.payload.request.LoginRequest;
 import com.howtobeasdet.todolistapi.payload.request.SignupRequest;
-import com.howtobeasdet.todolistapi.payload.response.JwtResponse;
 import com.howtobeasdet.todolistapi.payload.response.MessageResponse;
 import com.howtobeasdet.todolistapi.payload.response.SignInResponse;
 import com.howtobeasdet.todolistapi.security.jwt.JwtUtils;
@@ -20,19 +19,18 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/user")
-public class AuthController {
+@RequestMapping(path = "/user", produces = {"application/json", "plain/text"}, consumes = "application/json")
+public class UserController {
     @Autowired
     AuthenticationManager authenticationManager;
     @Autowired
@@ -45,7 +43,7 @@ public class AuthController {
     JwtUtils jwtUtils;
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
@@ -55,18 +53,23 @@ public class AuthController {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        UserR userR = new UserR(
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                userDetails.getPassword(),
-                userDetails.getAge(),
-                userDetails.toString(),
-                userDetails.toString(),
-                2
+        SignInResponse response = new SignInResponse(
+                new UserR(
+                        userDetails.getId(),
+                        userDetails.getUsername(),
+                        userDetails.getEmail(),
+                        userDetails.getPassword(),
+                        userDetails.getAge(),
+                        userDetails.toString(),
+                        userDetails.toString(),
+                        2
+                ),
+                jwt
         );
 
-        SignInResponse response = new SignInResponse(userR, jwt);
+        User u = userRepository.findByUsername(userDetails.getUsername()).get();
+        u.setLogIn(true);
+        userRepository.save(u);
 
         return ResponseEntity.ok(response);
     }
@@ -87,7 +90,6 @@ public class AuthController {
 
         LocalDateTime createdAt = LocalDateTime.now();
 
-        // Create new user's account
         User user = new User(
                 signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
@@ -130,25 +132,42 @@ public class AuthController {
 
         user.setRoles(roles);
 
+        String jwt = jwtUtils.generateJwtToken(user.getUsername());
+
+        user.setToken(jwt);
+
         userRepository.save(user);
 
         user = userRepository.findByUsername(user.getUsername()).get();
 
-        UserR userR = new UserR(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getPassword(),
-                user.getAge(),
-                createdAt.toString(),
-                createdAt.toString(),
-                1
+        SignInResponse response = new SignInResponse(
+                new UserR(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getPassword(),
+                        user.getAge(),
+                        createdAt.toString(),
+                        createdAt.toString(),
+                        1
+                ),
+                jwt
         );
 
-        String jwt = jwtUtils.generateJwtToken(user.getUsername());
-
-        SignInResponse response = new SignInResponse(userR, jwt);
-
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser(@RequestHeader("Authorization") String auth) {
+
+        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+            auth = auth.substring(7, auth.length());
+        }
+
+        String userName = jwtUtils.getUserNameFromJwtToken(auth);
+        User u = userRepository.findByUsername(userName).get();
+        u.setLogIn(false);
+        u = userRepository.save(u);
+        return ResponseEntity.ok(u);
     }
 }

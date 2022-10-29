@@ -47,6 +47,12 @@ public class User {
     @Column
     private Integer __v;
 
+    @Column
+    private String token;
+
+    @Column
+    private Boolean isLogIn;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -136,5 +142,21 @@ public class User {
 
     public void set__v(Integer __v) {
         this.__v = __v;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public Boolean getLogIn() {
+        return isLogIn;
+    }
+
+    public void setLogIn(Boolean logIn) {
+        isLogIn = logIn;
     }
 }
