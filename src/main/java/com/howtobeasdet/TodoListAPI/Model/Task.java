@@ -3,7 +3,7 @@ package com.howtobeasdet.TodoListAPI.Model;
 import javax.persistence.*;
 
 @Entity
-@Table(schema = "TasksCrud")
+@Table(name = "Task")
 public class Task {
     @Id
     @GeneratedValue()

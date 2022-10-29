@@ -1,46 +1,28 @@
 package com.howtobeasdet.TodoListAPI.Controller;
 
-import com.howtobeasdet.TodoListAPI.Model.Task;
-import com.howtobeasdet.TodoListAPI.Repository.TaskRepository;
+import com.howtobeasdet.TodoListAPI.Model.User;
+import com.howtobeasdet.TodoListAPI.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController
+@RestController()
 public class UserController {
     @Autowired
-    private TaskRepository taskRepository;
+    private UserRepository userRepository;
 
-    @GetMapping(value = "/")
-    public String holaMundo(){
-        return "HOLA MUNDO!!!";
+    @PostMapping(value = "/user/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public User register(@RequestBody User user)  {
+        user.set__v(1);
+        user = userRepository.save(user);
+        return user;
     }
 
-    @GetMapping(value= "/tasks")
-    public List<Task> getTasks(){
-        return taskRepository.findAll();
-    }
-
-    @PostMapping(value="/savetask")
-    public String saveTask(@RequestBody Task task){
-        taskRepository.save(task);
-        return "Saved task";
-    }
-
-    @PutMapping(value="/update/{id}")
-    public String updateTask(@PathVariable long id, @RequestBody Task task){
-        Task updatedTask = taskRepository.findById(id).get();
-        updatedTask.setTitle(task.getTitle());
-        updatedTask.setDescription(task.getDescription());
-        taskRepository.save(updatedTask);
-        return "Updated Task";
-    }
-
-    @DeleteMapping(value="delete/{id}")
-    public String deleteTask(@PathVariable long id){
-        Task deletedTask = taskRepository.findById(id).get();
-        taskRepository.delete(deletedTask);
-        return "Deleted Task";
+    @GetMapping(value= "/user")
+    public List<User> getUsers(){
+        return userRepository.findAll();
     }
 }
