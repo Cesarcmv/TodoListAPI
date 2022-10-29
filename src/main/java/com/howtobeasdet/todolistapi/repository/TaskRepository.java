@@ -1,6 +1,6 @@
-package com.howtobeasdet.TodoListAPI.Repository;
+package com.howtobeasdet.todolistapi.repository;
 
-import com.howtobeasdet.TodoListAPI.Model.Task;
+import com.howtobeasdet.todolistapi.model.Task;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {

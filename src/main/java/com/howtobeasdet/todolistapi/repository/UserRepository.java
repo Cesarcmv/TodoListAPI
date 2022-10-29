@@ -1,7 +1,6 @@
-package com.howtobeasdet.TodoListAPI.Repository;
+package com.howtobeasdet.todolistapi.repository;
 
-import com.howtobeasdet.TodoListAPI.Model.Task;
-import com.howtobeasdet.TodoListAPI.Model.User;
+import com.howtobeasdet.todolistapi.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

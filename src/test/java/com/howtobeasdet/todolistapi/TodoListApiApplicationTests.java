@@ -1,4 +1,4 @@
-package com.howtobeasdet.TodoListAPI;
+package com.howtobeasdet.todolistapi;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

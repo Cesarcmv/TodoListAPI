@@ -1,4 +1,4 @@
-package com.howtobeasdet.TodoListAPI.Model;
+package com.howtobeasdet.todolistapi.model;
 
 import javax.persistence.*;
 

@@ -1,59 +1,18 @@
-package com.howtobeasdet.TodoListAPI.Model;
+package com.howtobeasdet.todolistapi.model.response;
 
-import java.util.HashSet;
-import java.util.Set;
+public class UserR {
 
-import javax.persistence.*;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
-@Entity
-@Table(name = "users",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "username"),
-                @UniqueConstraint(columnNames = "email")
-        })
-public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @NotBlank
-    @Size(max = 20)
     private String username;
-
-    @NotBlank
-    @Size(max = 50)
-    @Email
     private String email;
-
-    @Column
-    @NotBlank
-    @Size(max = 120)
     private String password;
-
-    @NotNull
-    @Column
     private Integer age;
-
-    @Column
     private String createdAt;
-
-    @Column
     private String updatedAt;
-
-    @Column
     private Integer __v;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>();
-
-    public User(String username, String email, String password, Integer age, String createdAt, String updatedAt, Integer __v) {
+    public UserR(Long id, String username, String email, String password, Integer age, String createdAt, String updatedAt, Integer __v) {
+        this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
@@ -93,14 +52,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
     }
 
     public Integer getAge() {
