@@ -239,6 +239,7 @@ public class UserController {
             String userName = jwtUtils.getUserNameFromJwtToken(auth);
             User user = userRepository.findByUsername(userName).get();
             String userId = user.get_id();
+            storageService.init();
             storageService.save(userId, file);
 
             return ResponseEntity.status(HttpStatus.OK).body(new Success(true));
