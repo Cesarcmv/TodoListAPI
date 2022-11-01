@@ -1,18 +1,23 @@
 package com.howtobeasdet.todolistapi.controller;
 
-import com.howtobeasdet.todolistapi.model.ERole;
-import com.howtobeasdet.todolistapi.model.Role;
-import com.howtobeasdet.todolistapi.model.User;
-import com.howtobeasdet.todolistapi.model.response.UserR;
-import com.howtobeasdet.todolistapi.repository.RoleRepository;
-import com.howtobeasdet.todolistapi.repository.UserRepository;
+import com.howtobeasdet.todolistapi.model.*;
 import com.howtobeasdet.todolistapi.payload.request.LoginRequest;
 import com.howtobeasdet.todolistapi.payload.request.SignupRequest;
+import com.howtobeasdet.todolistapi.payload.request.UpdateRequest;
 import com.howtobeasdet.todolistapi.payload.response.MessageResponse;
+import com.howtobeasdet.todolistapi.payload.response.ResponseMessage;
 import com.howtobeasdet.todolistapi.payload.response.SignInResponse;
+import com.howtobeasdet.todolistapi.payload.response.UpdateResponse;
+import com.howtobeasdet.todolistapi.repository.RoleRepository;
+import com.howtobeasdet.todolistapi.repository.UserRepository;
 import com.howtobeasdet.todolistapi.security.jwt.JwtUtils;
 import com.howtobeasdet.todolistapi.security.services.UserDetailsImpl;
+import com.howtobeasdet.todolistapi.service.FilesStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,15 +26,20 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
 
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping(path = "/user", produces = {"application/json", "plain/text"}, consumes = "application/json")
+@RequestMapping(path = "/user", produces = {"application/json", "plain/text", MediaType.IMAGE_PNG_VALUE}, consumes = {"application/json", "multipart/form-data"})
 public class UserController {
     @Autowired
     AuthenticationManager authenticationManager;
@@ -42,40 +52,14 @@ public class UserController {
     @Autowired
     JwtUtils jwtUtils;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
-
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-
-        SignInResponse response = new SignInResponse(
-                new UserR(
-                        userDetails.getId(),
-                        userDetails.getUsername(),
-                        userDetails.getEmail(),
-                        userDetails.getPassword(),
-                        userDetails.getAge(),
-                        userDetails.toString(),
-                        userDetails.toString(),
-                        2
-                ),
-                jwt
-        );
-
-        User u = userRepository.findByUsername(userDetails.getUsername()).get();
-        u.setLogIn(true);
-        userRepository.save(u);
-
-        return ResponseEntity.ok(response);
-    }
+    @Autowired
+    FilesStorageService storageService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+    public ResponseEntity<?> registerUser(
+            @Valid
+            @RequestBody SignupRequest signUpRequest
+    ) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
@@ -90,7 +74,7 @@ public class UserController {
 
         LocalDateTime createdAt = LocalDateTime.now();
 
-        User user = new User(
+        User user = new User(UUID.randomUUID().toString(),
                 signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()),
@@ -133,32 +117,47 @@ public class UserController {
         user.setRoles(roles);
 
         String jwt = jwtUtils.generateJwtToken(user.getUsername());
-
-        user.setToken(jwt);
-
         userRepository.save(user);
 
         user = userRepository.findByUsername(user.getUsername()).get();
+        user.setToken(null);
+        user.setRoles(null);
+        user.setId(null);
 
-        SignInResponse response = new SignInResponse(
-                new UserR(
-                        user.getId(),
-                        user.getUsername(),
-                        user.getEmail(),
-                        user.getPassword(),
-                        user.getAge(),
-                        createdAt.toString(),
-                        createdAt.toString(),
-                        1
-                ),
-                jwt
-        );
+        SignInResponse signInResponse = new SignInResponse(user, jwt);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(signInResponse);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(
+            @Valid
+            @RequestBody LoginRequest loginRequest
+    ) {
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        User u = userRepository.findByUsername(userDetails.getUsername()).get();
+        u.setLogIn(true);
+        userRepository.save(u);
+        u.setRoles(null);
+        u.setId(null);
+        u.set__v(2);
+        u.setLogIn(null);
+
+        return ResponseEntity.ok(new SignInResponse(u, jwt));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logoutUser(@RequestHeader("Authorization") String auth) {
+    public ResponseEntity<?> logoutUser(
+            @RequestHeader("Authorization") String auth
+    ) {
 
         if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
             auth = auth.substring(7, auth.length());
@@ -168,6 +167,124 @@ public class UserController {
         User u = userRepository.findByUsername(userName).get();
         u.setLogIn(false);
         u = userRepository.save(u);
+        return ResponseEntity.ok("{\"success\":true}");
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getLoginViaToken(
+            @RequestHeader("Authorization") String auth
+    ) {
+
+        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+            auth = auth.substring(7, auth.length());
+        }
+
+        String userName = jwtUtils.getUserNameFromJwtToken(auth);
+        User u = userRepository.findByUsername(userName).get();
+        u.setLogIn(true);
+        u = userRepository.save(u);
+        u.set__v(3);
+        u.setId(null);
+        u.setId(null);
+        u.setToken(null);
+        u.setRoles(null);
+        u.setLogIn(null);
+
         return ResponseEntity.ok(u);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateUserProfile(
+            @RequestHeader("Authorization") String auth,
+            @Valid @RequestBody UpdateRequest signUpRequest
+    ) {
+
+        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+            auth = auth.substring(7, auth.length());
+        }
+
+        String userName = jwtUtils.getUserNameFromJwtToken(auth);
+        User u = userRepository.findByUsername(userName).get();
+        if (signUpRequest.getEmail() != null) {
+            u.setEmail(signUpRequest.getEmail());
+        }
+        if (signUpRequest.getAge() != null) {
+            u.setAge(signUpRequest.getAge());
+        }
+        if (signUpRequest.getPassword() != null) {
+            u.setPassword(encoder.encode((signUpRequest.getPassword())));
+        }
+
+        u = userRepository.save(u);
+        u.set__v(5);
+        u.setId(null);
+        u.setToken(null);
+        u.setRoles(null);
+        u.setLogIn(null);
+
+        return ResponseEntity.ok(new UpdateResponse(u, true));
+    }
+
+    @PostMapping("/me/avatar")
+    public ResponseEntity<?> uploadFile(
+            @RequestHeader("Authorization") String auth,
+            @RequestParam("avatar") MultipartFile file
+    ) {
+        String message = "";
+        try {
+            if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+                auth = auth.substring(7, auth.length());
+            }
+
+            String userName = jwtUtils.getUserNameFromJwtToken(auth);
+            User user = userRepository.findByUsername(userName).get();
+            String userId = user.get_id();
+            storageService.save(userId, file);
+
+            return ResponseEntity.status(HttpStatus.OK).body(new Success(true));
+        } catch (Exception e) {
+            message = "Could not upload the file: " + file.getOriginalFilename() + "!";
+            return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(new ResponseMessage(message));
+        }
+    }
+
+    @GetMapping(path = "/{userId}/avatar", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<Resource> getUserImage(@PathVariable String userId) {
+
+        Resource file = storageService.load(userId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getFilename() + "\"").body(file);
+    }
+
+    @DeleteMapping(path = "/me/avatar")
+    public ResponseEntity<?> deleteImage(@RequestHeader("Authorization") String auth) {
+
+        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+            auth = auth.substring(7, auth.length());
+        }
+
+        String userName = jwtUtils.getUserNameFromJwtToken(auth);
+        User u = userRepository.findByUsername(userName).get();
+
+        storageService.delete(u.get_id());
+
+        return ResponseEntity.ok()
+                .body(new Success(true));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteUser(
+            @RequestHeader("Authorization") String auth
+    ) {
+
+        if (StringUtils.hasText(auth) && auth.startsWith("Bearer ")) {
+            auth = auth.substring(7, auth.length());
+        }
+
+        String userName = jwtUtils.getUserNameFromJwtToken(auth);
+        User u = userRepository.findByUsername(userName).get();
+        userRepository.delete(u);
+
+        return ResponseEntity.ok(new Success(true));
     }
 }

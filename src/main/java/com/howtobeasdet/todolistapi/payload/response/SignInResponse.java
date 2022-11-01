@@ -1,23 +1,23 @@
 package com.howtobeasdet.todolistapi.payload.response;
 
-import com.howtobeasdet.todolistapi.model.response.UserR;
+import com.howtobeasdet.todolistapi.model.User;
 
 public class SignInResponse {
 
-    private UserR user;
+    private User user;
 
     private String token;
 
-    public SignInResponse(UserR user, String token) {
+    public SignInResponse(User user, String token) {
         this.user = user;
         this.token = token;
     }
 
-    public UserR getUser() {
+    public User getUser() {
         return user;
     }
 
-    public void setUser(UserR user) {
+    public void setUser(User user) {
         this.user = user;
     }
 

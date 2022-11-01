@@ -16,6 +16,8 @@ public class UserDetailsImpl implements UserDetails {
 
     private Long id;
 
+    private String _id;
+
     private String username;
 
     private String email;

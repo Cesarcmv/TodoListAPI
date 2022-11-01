@@ -1,5 +1,7 @@
 package com.howtobeasdet.todolistapi.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -15,10 +17,14 @@ import javax.validation.constraints.Size;
                 @UniqueConstraint(columnNames = "username"),
                 @UniqueConstraint(columnNames = "email")
         })
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column
+    private String _id;
 
     @NotBlank
     @Size(max = 20)
@@ -59,7 +65,8 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
-    public User(String username, String email, String password, Integer age, String createdAt, String updatedAt, Integer __v) {
+    public User(Long id, String username, String email, String password, Integer age, String createdAt, String updatedAt, Integer __v) {
+        this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
@@ -69,7 +76,18 @@ public class User {
         this.__v = __v;
     }
 
-    public  User(){
+    public User() {
+    }
+
+    public User(String id, String username, String email, String password, Integer age, String createdAt, String updatedAt, Integer __v) {
+        this._id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.age = age;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.__v = __v;
     }
 
     public Long getId() {
@@ -158,5 +176,13 @@ public class User {
 
     public void setLogIn(Boolean logIn) {
         isLogIn = logIn;
+    }
+
+    public String get_id() {
+        return _id;
+    }
+
+    public void set_id(String _id) {
+        this._id = _id;
     }
 }
